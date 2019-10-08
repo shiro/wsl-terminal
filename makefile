@@ -24,9 +24,6 @@ wslbridgever=0.4
 # mintty branch or commit version
 #minttyver=master
 
-# wslbridge branch or commit to build from source;
-wslbridge=wslbridge-frontend wslbridge-backend
-
 ##############################
 # Windows SDK version for appx
 WINSDKKEY=/HKEY_LOCAL_MACHINE/SOFTWARE/WOW6432Node/Microsoft/.NET Framework Platform/Setup/Multi-Targeting Pack
@@ -91,31 +88,21 @@ fix-verx:
 #############################################################################
 # generation
 
-wslbridge:	$(wslbridge)
-
-wslbridge2-$(wslbridgever).zip:
-	$(wgeto) https://github.com/Biswa96/wslbridge2/archive/v$(wslbridgever).zip -o wslbridge2-$(wslbridgever).zip
-
-wslbridge-source:	wslbridge2-$(wslbridgever).zip
-	unzip -ou wslbridge2-$(wslbridgever).zip
-	cp wslbridge2-$(wslbridgever)/LICENSE LICENSE.wslbridge2
-
-wslbridge-frontend:	wslbridge-source
-	echo ------------- Compiling wslbridge2 frontend
+wslbridge:	wslbridge-source
 	mkdir -p bin
-	rm -f bin/wslbridge2.exe bin/hvpty.exe
-	cd wslbridge2-$(wslbridgever); make RELEASE=1
-	cp wslbridge2-$(wslbridgever)/bin/wslbridge2.exe bin/
-	cp wslbridge2-$(wslbridgever)/bin/hvpty.exe bin/
+	cp wslbridge2-$(wslbridgever)/wslbridge2-backend bin/
+	cp wslbridge2-$(wslbridgever)/hvpty-backend bin/
+	cp wslbridge2-$(wslbridgever)/wslbridge2.exe bin/
+	cp wslbridge2-$(wslbridgever)/hvpty.exe bin/
+	rm -rf wslbridge2-$(wslbridgever)-compiled.7z wslbridge2-$(wslbridgever)
 
-wslbridge-backend:	wslbridge-source
-	echo ------------- Compiling wslbridge2 backend
-	uname -m | grep x86_64
-	mkdir -p bin
-	rm -f bin/wslbridge2-backend bin/hvpty-backend
-	cd wslbridge2-$(wslbridgever); cmd /C wsl -d Alpine make RELEASE=1 < /dev/null
-	cp wslbridge2-$(wslbridgever)/bin/wslbridge2-backend bin/
-	cp wslbridge2-$(wslbridgever)/bin/hvpty-backend bin/
+
+wslbridge-source:
+	echo ------------- Downloading wslbridge2 backend
+	$(wgeto) https://github.com/Biswa96/wslbridge2/releases/download/v$(wslbridgever)/wslbridge2_cygwin_x86_64.7z \
+	  -o wslbridge2-$(wslbridgever)-compiled.7z
+	7z x -y wslbridge2-$(wslbridgever)-compiled.7z \
+    -owslbridge2-$(wslbridgever)
 
 mintty-get:
 	$(wgeto) https://github.com/mintty/mintty/archive/$(minttyver).zip -o mintty-$(minttyver).zip
