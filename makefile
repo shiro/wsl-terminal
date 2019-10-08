@@ -135,6 +135,7 @@ cop:	ver
 	cp bin/dash.exe release/
 	cp bin/regtool.exe release/
 	cp bin/mintty.exe release/
+	cp bin/open-wsl.exe release/
 	cp bin/zoo.exe release/
 	cp build/lang.zoo release/
 	cp build/themes.zoo release/
@@ -166,13 +167,25 @@ install:	cop installbat
 installbat:
 	cd release; cmd /C install
 
+ahk-get:
+	mkdir -p build
+	$(wgeto) https://autohotkey.com/download/ahk.zip \
+		-o build/ahk.zip
+	unzip -o -d build/ahk build/ahk.zip
+
+ahk-build:
+	chmod 777 -R build/ahk
+	build/ahk/Compiler/Ahk2Exe.exe /in open-wsl.ahk /out bin/open-wsl.exe /icon icons/terminal.ico
+
+ahk: ahk-get ahk-build
+
 ver:
 	echo $(ver) > VERSION
 
 mintty:	mintty-get mintty-build
 
 # local wsltty build target:
-wsltty:	wslbridge cygwin mintty-build mintty-pkg
+wsltty:	wslbridge cygwin ahk mintty-build mintty-pkg
 
 # standalone wsltty package build target:
 pkg:	wslbridge cygwin mintty-get mintty-build mintty-pkg cab
