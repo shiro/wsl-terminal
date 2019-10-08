@@ -10,8 +10,6 @@
 # wsltty release
 ver=3.0.6
 
-# wsltty appx release - must have 4 parts!
-verx=3.0.6.0
 
 # mintty release version
 minttyver=3.0.6
@@ -24,19 +22,12 @@ wslbridgever=0.4
 # mintty branch or commit version
 #minttyver=master
 
-##############################
-# Windows SDK version for appx
-WINSDKKEY=/HKEY_LOCAL_MACHINE/SOFTWARE/WOW6432Node/Microsoft/.NET Framework Platform/Setup/Multi-Targeting Pack
-WINSDKVER=`regtool list '$(WINSDKKEY)' | sed -e '$$ q' -e d`
-
 #############################################################################
 # default target
 
 all:	all-$(notdir $(CURDIR))
 
 all-wsltty:	check pkg
-
-all-wsltty.appx:	appx
 
 #############################################################################
 # target checking and some defs
@@ -73,19 +64,6 @@ check:
 	uname -m | grep x86_64
 
 #############################################################################
-# patch version information for appx package configuration
-
-fix-verx:
-	echo patching $(WINSDKVER) into Launcher config
-	cd Launcher; sed -i~ -e "/<supportedRuntime / s,Version=v[.0-9]*,Version=$(WINSDKVER)," app.config
-	echo patched app.config
-	cd Launcher; sed -i~ -e "/<TargetFrameworkVersion>/ s,v[.0-9]*,$(WINSDKVER)," Launcher.csproj
-	echo patched Launcher.csproj
-	echo patching $(verx) into app config
-	sed -i~ -e '/<Identity / s,Version="[.0-9]*",Version="$(verx)",' AppxManifest.xml
-	echo patched AppxManifest.xml
-
-#############################################################################
 # generation
 
 wslbridge:	wslbridge-source
@@ -105,52 +83,31 @@ wslbridge-source:
     -owslbridge2-$(wslbridgever)
 
 mintty-get:
-	$(wgeto) https://github.com/mintty/mintty/archive/$(minttyver).zip -o mintty-$(minttyver).zip
-	unzip -o mintty-$(minttyver).zip
-	cp mintty-$(minttyver)/icon/terminal.ico mintty.ico
+	mkdir -p build
+	$(wgeto) https://github.com/mintty/mintty/archive/$(minttyver).zip -o build/mintty-$(minttyver).zip
+	unzip -d build -o build/mintty-$(minttyver).zip
+	cp build/mintty-$(minttyver)/icon/terminal.ico build/mintty.ico
 
 wslbuild=LDFLAGS="-static -static-libgcc -s"
-appxbuild=$(wslbuild) CCOPT=-DWSLTTY_APPX
 wslversion=VERSION_SUFFIX="– wsltty $(ver)" WSLTTY_VERSION="$(ver)"
-appxversion=VERSION_SUFFIX="– wsltty appx $(verx)" WSLTTY_VERSION="$(verx)"
 
 mintty-build:
 	# ensure rebuild of version-specific check and message
-	rm -f mintty-$(minttyver)/bin/*/windialog.o
+	rm -f build/mintty-$(minttyver)/bin/*/windialog.o
 	# build mintty
-	cd mintty-$(minttyver)/src; make $(wslbuild) $(wslversion)
+	cd build/mintty-$(minttyver)/src; make $(wslbuild) $(wslversion)
 	mkdir -p bin
-	cp mintty-$(minttyver)/bin/mintty.exe bin/
-	strip bin/mintty.exe
-
-mintty-build-appx:
-	# ensure rebuild of version-specific check and message
-	rm -f mintty-$(minttyver)/bin/*/windialog.o
-	# build mintty
-	cd mintty-$(minttyver)/src; make $(appxbuild) $(appxversion)
-	mkdir -p bin
-	cp mintty-$(minttyver)/bin/mintty.exe bin/
+	cp build/mintty-$(minttyver)/bin/mintty.exe bin/
 	strip bin/mintty.exe
 
 mintty-pkg:
-	cp mintty-$(minttyver)/LICENSE LICENSE.mintty
-	cd mintty-$(minttyver)/lang; zoo a lang *.po; mv lang.zoo ../../
-	cd mintty-$(minttyver)/themes; zoo a themes *[!~]; mv themes.zoo ../../
-	cd mintty-$(minttyver)/sounds; zoo a sounds *.wav *.WAV *.md; mv sounds.zoo ../../
+	cp build/mintty-$(minttyver)/LICENSE LICENSE.mintty
+	cd build/mintty-$(minttyver)/lang; zoo a lang *.po; mv lang.zoo ../../
+	cd build/mintty-$(minttyver)/themes; zoo a themes *[!~]; mv themes.zoo ../../
+	cd build/mintty-$(minttyver)/sounds; zoo a sounds *.wav *.WAV *.md; mv sounds.zoo ../../
 	# add charnames.txt to support "Character Info"
-	cd mintty-$(minttyver)/src; sh ./mknames
-	cp mintty-$(minttyver)/src/charnames.txt .
-
-mintty-appx:
-	mkdir -p usr/share/mintty
-	cd usr/share/mintty; mkdir -p lang themes sounds info
-	cp mintty-$(minttyver)/lang/*.po usr/share/mintty/lang/
-	cp mintty-$(minttyver)/themes/*[!~] usr/share/mintty/themes/
-	cp mintty-$(minttyver)/sounds/*.wav usr/share/mintty/sounds/
-	cp mintty-$(minttyver)/sounds/*.WAV usr/share/mintty/sounds/
-	# add charnames.txt to support "Character Info"
-	cd mintty-$(minttyver)/src; sh ./mknames
-	cp mintty-$(minttyver)/src/charnames.txt usr/share/mintty/info/
+	cd build/mintty-$(minttyver)/src; sh ./mknames
+	cp build/mintty-$(minttyver)/src/charnames.txt build/
 
 cygwin:	# mkshortcutexe
 	mkdir -p bin
@@ -169,57 +126,50 @@ bin/mkshortcut.exe:	mkshortcut.c
 	cp /bin/cygiconv-2.dll bin/
 	cp /bin/cygintl-8.dll bin/
 
-appx-bin:
-	mkdir -p bin
-	cp /bin/cygwin1.dll bin/
-	cp /bin/cygwin-console-helper.exe bin/
-
 cop:	ver
-	mkdir -p rel
-	rm -fr rel/wsltty-$(ver)-install.exe
-	sed -e "s,%version%,$(ver)," makewinx.cfg > rel/wsltty.SED
-	cp bin/cygwin1.dll rel/
-	cp bin/cygwin-console-helper.exe rel/
-	cp bin/dash.exe rel/
-	cp bin/regtool.exe rel/
-	cp bin/mintty.exe rel/
-	cp bin/zoo.exe rel/
-	cp lang.zoo rel/
-	cp themes.zoo rel/
-	cp sounds.zoo rel/
-	cp charnames.txt rel/
-	cp bin/wslbridge2.exe rel/
-	cp bin/wslbridge2-backend rel/
-	cp bin/hvpty.exe rel/
-	cp bin/hvpty-backend rel/
-	cp mkshortcut.vbs rel/
-	#cp bin/mkshortcut.exe rel/
-	#cp bin/cygpopt-0.dll rel/
-	#cp bin/cygiconv-2.dll rel/
-	#cp bin/cygintl-8.dll rel/
-	cp LICENSE.* rel/
-	cp VERSION rel/
-	cp *.lnk rel/
-	cp *.ico rel/
-	cp *.url rel/
-	cp *.bat rel/
-	cp *.sh rel/
-	cp *.vbs rel/
+	mkdir -p release
+	rm -fr release/wsltty-$(ver)-install.exe
+	sed -e "s,%version%,$(ver)," makewinx.cfg > release/wsltty.SED
+	cp bin/cygwin1.dll release/
+	cp bin/cygwin-console-helper.exe release/
+	cp bin/dash.exe release/
+	cp bin/regtool.exe release/
+	cp bin/mintty.exe release/
+	cp bin/zoo.exe release/
+	cp build/lang.zoo release/
+	cp build/themes.zoo release/
+	cp build/sounds.zoo release/
+	cp build/charnames.txt release/
+	cp bin/wslbridge2.exe release/
+	cp bin/wslbridge2-backend release/
+	cp bin/hvpty.exe release/
+	cp bin/hvpty-backend release/
+	cp mkshortcut.vbs release/
+	#cp bin/mkshortcut.exe release/
+	#cp bin/cygpopt-0.dll release/
+	#cp bin/cygiconv-2.dll release/
+	#cp bin/cygintl-8.dll release/
+	cp LICENSE.* release/
+	cp VERSION release/
+	cp *.lnk release/
+	cp *.ico release/
+	cp *.url release/
+	cp *.bat release/
+	cp *.sh release/
+	cp *.vbs release/
 
 cab:	cop
-	cd rel; iexpress /n wsltty.SED
+	cd release; iexpress /n wsltty.SED
 
 install:	cop installbat
 
 installbat:
-	cd rel; cmd /C install
+	cd release; cmd /C install
 
 ver:
 	echo $(ver) > VERSION
 
 mintty:	mintty-get mintty-build
-
-mintty-usr:	mintty-get mintty-appx
 
 # local wsltty build target:
 wsltty:	wslbridge cygwin mintty-build mintty-pkg
@@ -227,12 +177,6 @@ wsltty:	wslbridge cygwin mintty-build mintty-pkg
 # standalone wsltty package build target:
 pkg:	wslbridge cygwin mintty-get mintty-build mintty-pkg cab
 
-# appx package contents target:
-wsltty-appx:	wslbridge appx-bin mintty-get mintty-build-appx mintty-appx
-
-# appx package target:
-appx:	wsltty-appx fix-verx
-	sh ./build.sh
 
 #############################################################################
 # end
