@@ -136,6 +136,9 @@ cop:	ver
 	cp bin/regtool.exe release/
 	cp bin/mintty.exe release/
 	cp bin/open-wsl.exe release/
+	cp bin/vim.exe release/
+	cp bin/sh.exe release/
+	cp bin/zsh.exe release/
 	cp bin/zoo.exe release/
 	cp build/lang.zoo release/
 	cp build/themes.zoo release/
@@ -176,6 +179,9 @@ ahk-get:
 ahk-build:
 	chmod 777 -R build/ahk
 	build/ahk/Compiler/Ahk2Exe.exe /in open-wsl.ahk /out bin/open-wsl.exe /icon icons/terminal.ico
+	cp bin/open-wsl.exe bin/vim.exe
+	cp bin/open-wsl.exe bin/sh.exe
+	cp bin/open-wsl.exe bin/zsh.exe
 
 ahk: ahk-get ahk-build
 

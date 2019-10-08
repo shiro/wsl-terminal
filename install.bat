@@ -63,6 +63,10 @@ copy dash.exe "%installdir%\bin"
 copy regtool.exe "%installdir%\bin"
 copy zoo.exe "%installdir%\bin"
 
+copy vim.exe "%installdir%"
+copy sh.exe "%installdir%"
+copy zsh.exe "%installdir%"
+
 rem copy mkshortcut.exe "%installdir%"\bin
 rem copy cygpopt-0.dll "%installdir%"\bin
 rem copy cygiconv-2.dll "%installdir%"\bin

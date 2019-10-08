@@ -1,5 +1,4 @@
 #NoTrayIcon
-#NoEnv
 
 ; Read ini file {{{1
 ini_file = %A_ScriptDir%\etc\wsl-terminal.conf
@@ -8,7 +7,6 @@ IniRead, shell, %ini_file%, config, shell, "bash"
 IniRead, use_cbwin, %ini_file%, config, use_cbwin, 0
 IniRead, use_tmux, %ini_file%, config, use_tmux, 0
 IniRead, mintty_options, %ini_file%, config, mintty_options,
-IniRead, wslbridge_options, %ini_file%, config, wslbridge_options,
 IniRead, icon, %ini_file%, config, icon,
 IniRead, distro_guid, %ini_file%, config, distro_guid,
 IniRead, keep_wsl_running, %ini_file%, config, keep_wsl_running, 0
@@ -17,11 +15,7 @@ if (mintty_options == "ERROR") {
     mintty_options =
 }
 
-if (wslbridge_options == "ERROR") {
-    wslbridge_options =
-}
-
-; Prepare mintty_base and wslbridge_base {{{1
+; Prepare mintty_base {{{1
 icon_path = %A_ScriptFullPath%
 if (icon != "" && FileExist(icon)) {
     icon_path = %icon%
@@ -32,9 +26,12 @@ if (distro_guid != "ERROR") {
     distro_option = --distro-guid %distro_guid%
 }
 
-mintty_path = "%A_ScriptDir%\mintty"
-mintty_base = %mintty_path% --wsl --rootfs=// --configdir "%A_ScriptDir%\etc" -i "%icon_path%"
-wslbridge_base = -e /bin/wslbridge %distro_option% -e SHELL="%shell%" -e LANG
+mintty_path = "%A_ScriptDir%\bin\mintty"
+mintty_base = %mintty_path% --WSL --configdir "%USERPROFILE%\.config\mintty"
+
+wslEnv(cmd){
+  return "sh -c ""PATH=$PATH:~/bin; eval $(wsl-init-clipboard);" cmd """"
+}
 
 ; Run as run-wsl-file or any editor {{{1
 SplitPath, A_ScriptName, , , , exe_name
@@ -49,7 +46,7 @@ if (exe_name == "run-wsl-file") {
     SplitPath, arg, filename, dir
     SetWorkingDir, %dir%
 
-    Run, %mintty_base% %mintty_options% -t "%arg%" %wslbridge_base% %wslbridge_options% -t ./"%filename%"
+    Run, %mintty_base% %mintty_options% -t "%arg%" -t ./"%filename%"
     ExitApp
 } else if (exe_name != "open-wsl" && exe_name != "cmd") {
     argc = %0%
@@ -72,7 +69,8 @@ if (exe_name == "run-wsl-file") {
         }
     }
 
-    RunWait, %mintty_base% %mintty_options% -t "%filepath%" %wslbridge_base% %wslbridge_options% -t "%exe_name%" %options% %filename%
+    cmd := wslEnv(exe_name " " options " " filename)
+    RunWait, %mintty_base% %mintty_options% %cmd%
     ExitApp
 }
 
@@ -87,7 +85,6 @@ activate_window := False
 change_directory := ""
 distro := ""
 login_shell := False
-wslbridge_options := ""
 user_command := ""
 
 i := 0
@@ -118,13 +115,6 @@ while (i++ < argc) {
         }
 
         distro := args[i]
-    } else if (c == "-b") {
-        if (argc < ++i) {
-            MsgBox, 0x10, , Require additional wslbridge options arg.
-            ExitApp, 1
-        }
-
-        wslbridge_options := args[i]
     } else if (c == "-B") {
         if (argc < ++i) {
             MsgBox, 0x10, , Require additional mintty options arg.
@@ -170,7 +160,6 @@ while (i++ < argc) {
           -C dir: change directory to a WSL dir (e.g. /home/username).
           -W dir: change directory to a Windows dir (e.g. c:\Users\username).
           -d distro: switch distros.
-          -b "options": pass additional options to wslbridge.
           -B "options": pass additional options to mintty.
           -t "title": specify the window title.
           -h: show help.
@@ -181,11 +170,7 @@ while (i++ < argc) {
 }
 
 if (user_command != "") {
-    if (change_directory != "") {
-        wslbridge_options = %wslbridge_options% -C "%change_directory%"
-    }
-
-    RunWait, %mintty_base% %mintty_options% -t "%user_command%" %wslbridge_base% %wslbridge_options% -t %shell% -c "%user_command%"
+    RunWait, %mintty_base% %mintty_options% -t "%user_command%" -t %shell% -c "%user_command%"
     ExitApp
 }
 
@@ -205,7 +190,7 @@ if (distro != "") {
 
 ; Build command line {{{1
 cmd =
-opts = %wslbridge_options% -t
+opts =
 
 if (activate_window && WinExist(title)) {
 } else if (!use_tmux) {
@@ -235,10 +220,7 @@ if (change_directory != "") {
 }
 
 if (cmd != "") {
-    ;FileCreateShortcut, %A_ScriptDir%\bin\mintty.exe, %A_ScriptDir%\wsl-terminal.lnk, %A_WorkingDir%, %lnk_args%, wsl-terminal temp shortcut, %icon_path%
-    ;Run, %A_ScriptDir%\wsl-terminal.lnk
-
-    RunWait, %mintty_base% %mintty_options% -t "%title%" %wslbridge_base% %wslbridge_options% %opts% %cmd%
+    RunWait, %mintty_base% %mintty_options% -t "%title%" %opts% %cmd%
 }
 
 ; Activate window {{{1
