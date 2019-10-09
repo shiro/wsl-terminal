@@ -7,7 +7,7 @@
 # make wsltty	build the software, using the local copy of mintty
 
 
-# wsltty release
+# term release
 ver=3.0.6
 
 
@@ -27,7 +27,7 @@ wslbridgever=0.4
 
 all:	all-$(notdir $(CURDIR))
 
-all-wsltty:	check pkg
+all-term:	check pkg
 
 #############################################################################
 # target checking and some defs
@@ -89,7 +89,7 @@ mintty-get:
 	cp build/mintty-$(minttyver)/icon/terminal.ico build/mintty.ico
 
 wslbuild=LDFLAGS="-static -static-libgcc -s"
-wslversion=VERSION_SUFFIX="– wsltty $(ver)" WSLTTY_VERSION="$(ver)"
+wslversion=VERSION_SUFFIX="– term $(ver)" WSLTTY_VERSION="$(ver)"
 
 mintty-build:
 	# ensure rebuild of version-specific check and message
@@ -191,7 +191,7 @@ ver:
 mintty:	mintty-get mintty-build
 
 # local wsltty build target:
-wsltty:	wslbridge cygwin ahk mintty-build mintty-pkg
+term:	wslbridge cygwin ahk mintty-build mintty-pkg
 
 # standalone wsltty package build target:
 pkg:	wslbridge cygwin mintty-get mintty-build mintty-pkg cab
