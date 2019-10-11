@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# set some paths; capital variables are for the mkshortcut.exe case, 
+# set some paths; capital variables are for the mkshortcut.exe case,
 # not for the mkshortcut.vbs case
 
 case "$installdir" in

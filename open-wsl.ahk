@@ -26,29 +26,15 @@ if (distro_guid != "ERROR") {
     distro_option = --distro-guid %distro_guid%
 }
 
-mintty_path = "%A_ScriptDir%\bin\mintty"
+mintty_path = "%LOCALAPPDATA%\wsltty\bin\mintty"
 mintty_base = %mintty_path% --WSL --configdir "%USERPROFILE%\.config\mintty"
 
 wslEnv(cmd){
   return "sh -c ""PATH=$PATH:~/bin; eval $(wsl-init-clipboard);" cmd """"
 }
 
-; Run as run-wsl-file or any editor {{{1
 SplitPath, A_ScriptName, , , , exe_name
-if (exe_name == "run-wsl-file") {
-    arg = %1%
-
-    if (arg == "") {
-        MsgBox, Open .sh/.py/.pl/... with %exe_name%.exe to run it in WSL.
-        ExitApp
-    }
-
-    SplitPath, arg, filename, dir
-    SetWorkingDir, %dir%
-
-    Run, %mintty_base% %mintty_options% -t "%arg%" -t ./"%filename%"
-    ExitApp
-} else if (exe_name != "open-wsl" && exe_name != "cmd") {
+if (exe_name != "wsl") {
     argc = %0%
     filepath := ""
     filename := ""
